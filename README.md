@@ -13,6 +13,20 @@ Example usage:
 	router.getWithRegex("/(.*)").handler(DynamicTemplateHandler.create(vertx, cache));
 ```
 
+### AsciiDoctorHandler
+
+The `AsciiDoctorHandler` tries to map request paths to asciidoc documents in the filesystem.
+
+Examples:
+
+* `GET /`  -> `site/index.adoc`
+* `GET /index.html`  -> `site/index.adoc`
+* `GET /Blog/`  -> `site/Blog/index.adoc`
+
+The found document will be rendered and added to the render context via the `page` field.
+
+### AsciiDoctorCollectionsHandler
+
 The `AsciiDoctorCollectionsHandler` will parse all found documents which match the pattern and add them into different collections.
 
 You can control to which collection a document will be added by marking each document using the `collections` variable
