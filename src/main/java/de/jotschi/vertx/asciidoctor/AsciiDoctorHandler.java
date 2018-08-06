@@ -25,32 +25,38 @@ public class AsciiDoctorHandler extends AbstractAsciidoctorHandler {
 
 	@Override
 	public void handle(RoutingContext rc) {
-		String path = rc.request().path();
-		String docPath = sourceDir + path.replaceAll("\\.html", ".adoc");
-		if (docPath.endsWith("/")) {
-			docPath += "index.adoc";
-		}
-		String convertedPath = docPath;
-		log.info("Checking path {" + path + "} -> {" + convertedPath + "}");
-		fs.exists(convertedPath, fe -> {
-			if (fe.result()) {
-				log.info("Found: " + convertedPath);
-				fs.readFile(convertedPath, fh -> {
-					String source = fh.result().toString();
-					Document doc = doctor.load(source, getOptions());
-					// Add the adoc variables to the handlebar context
-					for (Entry<String, Object> entry : doc.getAttributes().entrySet()) {
-						rc.put(entry.getKey(), entry.getValue());
+		String path = PathUtil.normalizePath(sourceDir, rc.request().path());
+		log.info("Checking path {" + path + "}");
+		fs.exists(path, fe -> {
+			if (fe.failed()) {
+				log.error("Error while checking {" + path + "}", fe.cause());
+				rc.next();
+			} else if (fe.result()) {
+				log.info("Found: " + path);
+				fs.readFile(path, fh -> {
+					if (fh.failed()) {
+						log.error("Error while loading file {" + path + "}", fh.cause());
+						rc.next();
+					} else {
+						String source = fh.result().toString();
+						Document doc = doctor.load(source, getOptions());
+						// Add the adoc variables to the handlebar context
+						for (Entry<String, Object> entry : doc.getAttributes().entrySet()) {
+							rc.put(entry.getKey(), entry.getValue());
+						}
+						String templateInfo = (String) doc.getAttr("template", "main");
+						rc.put("tmplName", templateInfo);
+						String rendered = doc.convert();
+						JsonObject json = toJsonObject(doc);
+						json.put("content", rendered);
+						rc.put("page", json);
+						rc.next();
 					}
-					String templateInfo = (String) doc.getAttr("template", "main");
-					rc.put("tmplName", templateInfo);
-					String rendered = doc.convert();
-					JsonObject json = toJsonObject(doc);
-					json.put("content", rendered);
-					rc.put("page", json);
-					rc.next();
 				});
 			} else {
+				if (log.isDebugEnabled()) {
+					log.debug("Could not find adoc file", fe.cause());
+				}
 				rc.put("tmplName", "404");
 				rc.next();
 			}

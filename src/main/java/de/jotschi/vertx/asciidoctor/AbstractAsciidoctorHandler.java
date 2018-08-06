@@ -27,16 +27,15 @@ public abstract class AbstractAsciidoctorHandler implements Handler<RoutingConte
 	public JsonObject toJsonObject(Document doc) {
 		JsonObject obj = new JsonObject();
 		obj.put("title", doc.getTitle());
+		JsonObject attrs = new JsonObject();
+		obj.put("attr", attrs);
 		for (Entry<String, Object> entry : doc.getAttributes().entrySet()) {
-			obj.put("attr_" + entry.getKey(), entry.getValue());
+			attrs.put(entry.getKey(), entry.getValue());
 		}
 		obj.put("doctitle", doc.doctitle());
 		obj.put("style", doc.getStyle());
 		obj.put("level", doc.getLevel());
 		obj.put("reftext", doc.getReftext());
-		JsonObject a = new JsonObject();
-		a.put("test", "1234");
-		obj.put("test",a);
 		return obj;
 	}
 

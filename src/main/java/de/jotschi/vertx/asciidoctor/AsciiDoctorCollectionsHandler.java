@@ -1,8 +1,8 @@
 package de.jotschi.vertx.asciidoctor;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -21,9 +21,9 @@ public class AsciiDoctorCollectionsHandler extends AbstractAsciidoctorHandler {
 	private final String pattern;
 	private final static AntPathMatcher d = new AntPathMatcher.Builder().build();
 
-	private Comparator<Document> docCreationDateComparator = (doc1, doc2) -> {
-		String created1 = (String) doc1.getAttr("created");
-		String created2 = (String) doc2.getAttr("created");
+	private Comparator<DocumentEntry> docCreationDateComparator = (e1, e2) -> {
+		String created1 = (String) e1.doc.getAttr("created");
+		String created2 = (String) e2.doc.getAttr("created");
 		return -1;
 	};
 
@@ -41,15 +41,24 @@ public class AsciiDoctorCollectionsHandler extends AbstractAsciidoctorHandler {
 				.filter(Files::isRegularFile)
 				.filter(f -> f.getFileName().toString().endsWith(".adoc"))
 				.filter(f -> d.isMatch(pattern, f.toString()))
-				.map(f -> doctor.loadFile(f.toFile(), getOptions()))
-				.filter(doc -> doc.getAttr("collections") != null)
+				.map(f -> {
+					Document doc = doctor.loadFile(f.toFile(), getOptions());
+					return new DocumentEntry(f, doc);
+				})
+				.filter(e -> e.doc.getAttr("collections") != null)
 				.sorted(docCreationDateComparator)
-				.forEach(doc -> {
-					String name = (String) doc.getAttr("collections");
+				.forEach(e -> {
+					String name = (String) e.doc.getAttr("collections");
 					JsonArray array = collectionsMap.computeIfAbsent(name, key -> {
 						return new JsonArray();
 					});
-					array.add(toJsonObject(doc));
+					JsonObject element = toJsonObject(e.doc);
+					String path = e.path.toString();
+					System.out.println(path);
+					path = path.replaceAll("\\.adoc", ".html");
+					path = path.substring(sourceDir.length()+1);
+					element.put("path", path);
+					array.add(element);
 				});
 
 			// Now add the individual collections
@@ -66,6 +75,17 @@ public class AsciiDoctorCollectionsHandler extends AbstractAsciidoctorHandler {
 
 	public static AsciiDoctorCollectionsHandler create(String sourceDir, String regex) {
 		return new AsciiDoctorCollectionsHandler(sourceDir, regex);
+	}
+
+	class DocumentEntry {
+
+		public Document doc;
+		public Path path;
+
+		public DocumentEntry(Path path, Document doc) {
+			this.path = path;
+			this.doc = doc;
+		}
 	}
 
 }
