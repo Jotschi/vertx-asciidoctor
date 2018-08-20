@@ -56,7 +56,7 @@ public class AsciiDoctorCollectionsHandler extends AbstractAsciidoctorHandler {
 					String path = e.path.toString();
 					System.out.println(path);
 					path = path.replaceAll("\\.adoc", ".html");
-					path = path.substring(sourceDir.length()+1);
+					path = path.substring(sourceDir.length() + 1);
 					element.put("path", path);
 					array.add(element);
 				});

@@ -1,0 +1,3 @@
+:collections: dummy2
+
+== Blog Post C
